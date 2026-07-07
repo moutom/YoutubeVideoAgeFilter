@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube Age Filter - Tampermonkey Menu Only
 // @namespace    yt-age-filter-tampermonkey-menu-only
-// @version      5.1
+// @version      1.0
 // @description  Filter YouTube videos by age using only Tampermonkey extension menu commands.
 // @match        *://*.youtube.com/*
 // @match        *://youtube.com/*
