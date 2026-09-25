@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube Age Filter - Tampermonkey Menu Only
 // @namespace    yt-age-filter-tampermonkey-menu-only
-// @version      1.0
+// @version      1.1
 // @description  Filter YouTube videos by age using only Tampermonkey extension menu commands.
 // @match        *://*.youtube.com/*
 // @match        *://youtube.com/*
@@ -14,7 +14,7 @@
 (function () {
     'use strict';
 
-    console.log('[YT Age Filter] v5.1 loaded');
+    console.log('[YT Age Filter] v1.1 loaded');
 
     const AGE_LIMITS_DAYS = {
         '1m': 31,
@@ -246,17 +246,22 @@
             'span'
         ].join(','));
 
+        // querySelectorAll returns document order, so the first match can be a title
+        // ("... 10 years ago") or a wrapper holding title + metadata. The shortest
+        // matching text is the metadata item itself.
+        let best = null;
+
         for (const el of candidates) {
             const text = normalize(el.textContent);
 
             if (!text) continue;
 
-            if (looksLikeAge(text)) {
-                return text;
+            if (looksLikeAge(text) && (best === null || text.length <= best.length)) {
+                best = text;
             }
         }
 
-        return null;
+        return best;
     }
 
     function normalize(text) {
@@ -267,12 +272,7 @@
     }
 
     function looksLikeAge(text) {
-        return (
-            /\b\d+\s+(second|minute|hour|day|week|month|year)s?\s+ago\b/i.test(text) ||
-            /\bstreamed\s+\d+\s+(second|minute|hour|day|week|month|year)s?\s+ago\b/i.test(text) ||
-            /\bh[áa]\s+\d+\s+(segundo|segundos|minuto|minutos|hora|horas|dia|dias|semana|semanas|m[êe]s|meses|ano|anos)\b/i.test(text) ||
-            /\b\d+\s+(segundo|segundos|minuto|minutos|hora|horas|dia|dias|semana|semanas|m[êe]s|meses|ano|anos)\s+atr[áa]s\b/i.test(text)
-        );
+        return parseAgeToDays(text) !== null;
     }
 
     function parseAgeToDays(text) {
@@ -280,19 +280,20 @@
 
         const clean = normalize(text);
 
-        let match = clean.match(/(?:streamed\s+)?(\d+)\s+(second|minute|hour|day|week|month|year)s?\s+ago/);
+        // Long ("3 months ago") and compact ("8h ago", "3mo ago", "2 wk ago") forms.
+        let match = clean.match(/\b(\d+)\s*(seconds?|secs?|minutes?|mins?|hours?|hrs?|days?|weeks?|wks?|months?|mos?|years?|yrs?|s|m|h|d|w|y)\s+ago\b/);
 
         if (match) {
             return unitToDays(Number(match[1]), match[2], 'en');
         }
 
-        match = clean.match(/h[áa]\s+(\d+)\s+(segundo|segundos|minuto|minutos|hora|horas|dia|dias|semana|semanas|m[êe]s|meses|ano|anos)/);
+        match = clean.match(/\bh[áa]\s+(\d+)\s+(segundo|segundos|minuto|minutos|hora|horas|dia|dias|semana|semanas|m[êe]s|meses|ano|anos)/);
 
         if (match) {
             return unitToDays(Number(match[1]), match[2], 'pt');
         }
 
-        match = clean.match(/(\d+)\s+(segundo|segundos|minuto|minutos|hora|horas|dia|dias|semana|semanas|m[êe]s|meses|ano|anos)\s+atr[áa]s/);
+        match = clean.match(/\b(\d+)\s+(segundo|segundos|minuto|minutos|hora|horas|dia|dias|semana|semanas|m[êe]s|meses|ano|anos)\s+atr[áa]s/);
 
         if (match) {
             return unitToDays(Number(match[1]), match[2], 'pt');
@@ -307,11 +308,11 @@
         unit = unit.toLowerCase();
 
         if (language === 'en') {
-            if (unit === 'second' || unit === 'minute' || unit === 'hour') return 0;
-            if (unit === 'day') return value;
-            if (unit === 'week') return value * 7;
-            if (unit === 'month') return value * 31;
-            if (unit === 'year') return value * 366;
+            if (unit.startsWith('mo')) return value * 31;
+            if (/^[smh]/.test(unit)) return 0; // seconds, minutes ("m"), hours
+            if (unit.startsWith('d')) return value;
+            if (unit.startsWith('w')) return value * 7;
+            if (unit.startsWith('y')) return value * 366;
         }
 
         if (language === 'pt') {
