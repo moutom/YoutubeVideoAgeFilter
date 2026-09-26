@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube Age Filter - Tampermonkey Menu Only
 // @namespace    yt-age-filter-tampermonkey-menu-only
-// @version      1.1
+// @version      5.2
 // @description  Filter YouTube videos by age using only Tampermonkey extension menu commands.
 // @match        *://*.youtube.com/*
 // @match        *://youtube.com/*
@@ -14,7 +14,7 @@
 (function () {
     'use strict';
 
-    console.log('[YT Age Filter] v1.1 loaded');
+    console.log('[YT Age Filter] v5.2 loaded');
 
     const AGE_LIMITS_DAYS = {
         '1m': 31,
